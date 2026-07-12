@@ -1,21 +1,24 @@
-name: aegira-creditappdemo-runner
+name: aegira-creditappdemo-runner          # Nama project Docker Compose.
 
-services:
-  runner:
-    image: myoung34/github-runner:latest
-    container_name: github-runner-aegira-creditappdemo
-    environment:
-      REPO_URL: https://github.com/davinbennett/aegira-creditappdemo-cicd
-      RUNNER_SCOPE: repo
-      RUNNER_NAME: laptop-runner
-      RUNNER_TOKEN: AM6DPFLVQUOAQRTOORD5UWLKKOJ6M
-      LABELS: docker-local
-      RUNNER_WORKDIR: /tmp/aegira-creditappdemo-runner
-      CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner/data
-      DISABLE_AUTOMATIC_DEREGISTRATION: "true"
-      UNSET_CONFIG_VARS: "true"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./runner-data:/runner/data
-      - ./runner-work:/tmp/aegira-creditappdemo-runner
-    restart: unless-stopped
+services:                                  # Daftar service yang akan dijalankan.
+  runner:                                  # Nama service.
+    image: myoung34/github-runner:latest   # Menggunakan image GitHub Actions Self-Hosted Runner.
+    container_name: github-runner-aegira-creditappdemo  # Nama container agar mudah dikenali.
+
+    environment:                           # Environment variable untuk konfigurasi runner.
+      REPO_URL: https://github.com/davinbennett/aegira-creditappdemo-cicd   # Repository GitHub yang menggunakan runner.
+      RUNNER_SCOPE: repo                   # Runner didaftarkan pada level repository.
+      RUNNER_NAME: laptop-runner           # Nama runner yang tampil di GitHub Actions.
+      RUNNER_TOKEN: AM6DPFLVQUOAQRTOORD5UWLKKOJ6M  # Token registrasi runner.
+      LABELS: docker-local                 # Label runner untuk memilih runner pada workflow.
+      RUNNER_WORKDIR: /tmp/aegira-creditappdemo-runner   # Direktori kerja sementara runner.
+      CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner/data  # Lokasi penyimpanan konfigurasi runner.
+      DISABLE_AUTOMATIC_DEREGISTRATION: "true"           # Mencegah runner dihapus otomatis saat container berhenti.
+      UNSET_CONFIG_VARS: "true"           # Menghapus environment sensitif setelah konfigurasi selesai.
+
+    volumes:                               # Mount folder dari host ke container.
+      - /var/run/docker.sock:/var/run/docker.sock   # Memberikan akses Docker host ke runner.
+      - ./runner-data:/runner/data                 # Menyimpan konfigurasi runner secara persisten.
+      - ./runner-work:/tmp/aegira-creditappdemo-runner  # Menyimpan direktori kerja runner.
+
+    restart: unless-stopped                # Menjalankan ulang container secara otomatis kecuali dihentikan manual.

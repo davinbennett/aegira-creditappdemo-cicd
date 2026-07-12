@@ -1,69 +1,70 @@
-name: aegira-creditappdemo
+name: aegira-creditappdemo                   # Nama project Docker Compose.
 
-services:
-  postgres:
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_DB: aegira_loan
-      POSTGRES_USER: aegira
-      POSTGRES_PASSWORD: aegira_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aegira -d aegira_loan"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+services:                                    # Daftar service yang akan dijalankan.
 
-  redis:
-    image: redis:5.0.3-alpine
-    container_name: aegira-loan-redis
-    command: redis-server --appendonly yes
+  postgres:                                  # Service PostgreSQL.
+    image: postgres:14-alpine                # Menggunakan image PostgreSQL 14 berbasis Alpine.
+    environment:                             # Environment variable PostgreSQL.
+      POSTGRES_DB: aegira_loan               # Nama database yang dibuat saat pertama kali container dijalankan.
+      POSTGRES_USER: aegira                  # Username database.
+      POSTGRES_PASSWORD: aegira_password     # Password database.
     ports:
-      - "6379:6379"
+      - "5432:5432"                          # Membuka port PostgreSQL ke host.
     volumes:
-      - redis_data:/data
-    
-  aegira-loan-service:
+      - postgres_data:/var/lib/postgresql/data  # Menyimpan data database secara persisten.
+    healthcheck:                             # Mengecek apakah PostgreSQL sudah siap menerima koneksi.
+      test: ["CMD-SHELL", "pg_isready -U aegira -d aegira_loan"]  # Perintah pengecekan database.
+      interval: 10s                          # Health check dijalankan setiap 10 detik.
+      timeout: 5s                            # Maksimal waktu tunggu setiap health check.
+      retries: 5                             # Maksimal 5 kali percobaan sebelum dianggap gagal.
+
+  redis:                                     # Service Redis.
+    image: redis:5.0.3-alpine                # Menggunakan image Redis berbasis Alpine.
+    container_name: aegira-loan-redis        # Nama container Redis.
+    command: redis-server --appendonly yes   # Menjalankan Redis dengan fitur Append Only File (AOF).
+    ports:
+      - "6379:6379"                          # Membuka port Redis ke host.
+    volumes:
+      - redis_data:/data                     # Menyimpan data Redis secara persisten.
+
+  aegira-loan-service:                       # Service backend Spring Boot.
     build:
-      context: ./aegira-loan-service
-    image: aegira-loan-service:local
-    depends_on:
+      context: ./aegira-loan-service         # Lokasi Dockerfile backend.
+    image: aegira-loan-service:local         # Nama image hasil build.
+    depends_on:                              # Menentukan dependency service.
       postgres:
-        condition: service_healthy
+        condition: service_healthy           # Menunggu PostgreSQL sehat sebelum backend dijalankan.
       redis:
-        condition: service_started
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aegira_loan
-      SPRING_DATASOURCE_USERNAME: aegira
-      SPRING_DATASOURCE_PASSWORD: aegira_password
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: change-this-secret
-      JWT_EXPIRATION: 3600000
-      LOAN_DATA_SOURCE_MODE: DATABASE
-      IDEMPOTENCY_ENABLED: true
-      IDEMPOTENCY_TTL_SECONDS: 86400
+        condition: service_started           # Menunggu Redis berjalan.
+    environment:                             # Environment variable backend.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aegira_loan  # URL koneksi PostgreSQL.
+      SPRING_DATASOURCE_USERNAME: aegira     # Username database.
+      SPRING_DATASOURCE_PASSWORD: aegira_password  # Password database.
+      REDIS_HOST: redis                      # Host Redis pada jaringan Docker.
+      REDIS_PORT: 6379                       # Port Redis.
+      JWT_SECRET: change-this-secret         # Secret key JWT.
+      JWT_EXPIRATION: 3600000                # Waktu kedaluwarsa JWT (ms).
+      LOAN_DATA_SOURCE_MODE: DATABASE        # Mode sumber data aplikasi.
+      IDEMPOTENCY_ENABLED: true              # Mengaktifkan fitur idempotency.
+      IDEMPOTENCY_TTL_SECONDS: 86400         # Durasi penyimpanan idempotency (detik).
     ports:
-      - "8080:8080"
-    restart: unless-stopped
+      - "8080:8080"                          # Membuka port backend ke host.
+    restart: unless-stopped                  # Restart otomatis kecuali dihentikan manual.
 
-  creditappdemo:
+  creditappdemo:                             # Service frontend.
     build:
-      context: ./creditappdemo
-      args:
-        VITE_SCORING_MODE: mock
-        VITE_BACKEND_BASE_URL: http://localhost:8080
-        VITE_SCORING_PATH: /api/v1/credit-scoring/simulate
-        VITE_SCORING_SCHEMA: aegira
-        VITE_SCORING_DEFAULT_TENURE: 12
-    image: creditappdemo:latest
+      context: ./creditappdemo               # Lokasi Dockerfile frontend.
+      args:                                  # Build argument untuk Vite.
+        VITE_SCORING_MODE: mock              # Mode scoring (mock/backend).
+        VITE_BACKEND_BASE_URL: http://localhost:8080  # URL backend yang digunakan frontend.
+        VITE_SCORING_PATH: /api/v1/credit-scoring/simulate  # Endpoint scoring.
+        VITE_SCORING_SCHEMA: aegira          # Nama schema scoring.
+        VITE_SCORING_DEFAULT_TENURE: 12      # Tenor default.
+    image: creditappdemo:latest              # Nama image frontend.
     ports:
-      - "5173:80"
-    restart: unless-stopped
+      - "5173:80"                            # Port host 5173 diarahkan ke port 80 Nginx.
+    restart: unless-stopped                  # Restart otomatis kecuali dihentikan manual.
 
-volumes:
-  postgres_data:
-  redis_data:
+volumes:                                     # Daftar Docker Volume.
+  postgres_data:                             # Volume untuk menyimpan data PostgreSQL.
+  redis_data:                                # Volume untuk menyimpan data Redis.

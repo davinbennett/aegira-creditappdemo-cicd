@@ -1,39 +1,40 @@
-name: Build and Deploy
+name: Build and Deploy                     # Nama workflow yang tampil di GitHub Actions.
 
-on:
-  push:
+on:                                        # Menentukan kapan workflow dijalankan.
+  push:                                    # Trigger saat ada push ke repository.
     branches:
-      - main
-      - master
-  workflow_dispatch:
+      - main                               # Berjalan saat push ke branch main.
+      - master                             # Berjalan saat push ke branch master.
+  workflow_dispatch:                       # Memungkinkan workflow dijalankan secara manual dari GitHub.
 
-concurrency:
-  group: production-deploy
-  cancel-in-progress: true
+concurrency:                               # Mengatur agar hanya satu deployment berjalan dalam satu waktu.
+  group: production-deploy                 # Nama grup concurrency.
+  cancel-in-progress: true                 # Membatalkan deployment sebelumnya jika ada deployment baru.
 
-jobs:
+jobs:                                      # Daftar job yang akan dijalankan.
   deploy:
-    name: Deploy with Self-Hosted Docker Runner
-    runs-on: [self-hosted, docker-local]
+    name: Deploy with Self-Hosted Docker Runner   # Nama job yang tampil di GitHub Actions.
+    runs-on: [self-hosted, docker-local]          # Menjalankan job pada self-hosted runner dengan label docker-local.
 
     permissions:
-      contents: read
+      contents: read                       # Memberikan izin baca terhadap isi repository.
 
-    steps:
-      - name: Checkout source
+    steps:                                # Urutan langkah yang dijalankan.
+
+      - name: Checkout source             # Mengambil source code dari repository.
         uses: actions/checkout@v4
 
-      - name: Verify Docker
+      - name: Verify Docker               # Memastikan Docker dan Docker Compose tersedia pada runner.
         run: |
-          docker --version
-          docker compose version
+          docker --version                # Menampilkan versi Docker.
+          docker compose version          # Menampilkan versi Docker Compose.
 
-      - name: Build and Deploy
+      - name: Build and Deploy            # Build image dan menjalankan seluruh service.
         run: docker compose up -d --build --remove-orphans
 
-      - name: Show running containers
+      - name: Show running containers     # Menampilkan daftar container yang sedang berjalan.
         run: docker compose ps
 
-      - name: Show logs if deployment fails
-        if: failure()
-        run: docker compose logs
+      - name: Show logs if deployment fails   # Menampilkan log jika proses deployment gagal.
+        if: failure()                         # Langkah ini hanya dijalankan ketika job gagal.
+        run: docker compose logs              # Menampilkan log seluruh service.
