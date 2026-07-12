@@ -1,0 +1,12 @@
+﻿{
+  "repositoryName": "davinbennett/aegira-creditappdemo-cicd",
+  "pipelineDirectory": "aegira-creditappdemo-cicd",
+  "workspaceDirectory": "aegira-creditappdemo-cicd/aegira-creditappdemo-cicd",
+  "repositories": {
+    "davinbennett/aegira-creditappdemo-cicd": {
+      "repositoryPath": "aegira-creditappdemo-cicd/aegira-creditappdemo-cicd",
+      "lastRunOn": "07/12/2026 12:22:25 +00:00"
+    }
+  },
+  "lastRunOn": "07/12/2026 12:22:25 +00:00"
+}
