@@ -1,0 +1,6 @@
+# Local environment files and credentials
+.env
+.env.runner
+
+# GitHub Actions runner state can contain registration data.
+runner-data/

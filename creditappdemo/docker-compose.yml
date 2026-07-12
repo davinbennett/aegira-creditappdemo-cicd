@@ -1,0 +1,14 @@
+services:
+  creditappdemo:
+    build:
+      context: .
+      args:
+        VITE_SCORING_MODE: ${VITE_SCORING_MODE:-mock}
+        VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-http://localhost:8080}
+        VITE_SCORING_PATH: ${VITE_SCORING_PATH:-/api/v1/credit-scoring/simulate}
+        VITE_SCORING_SCHEMA: ${VITE_SCORING_SCHEMA:-aegira}
+        VITE_SCORING_DEFAULT_TENURE: ${VITE_SCORING_DEFAULT_TENURE:-12}
+    image: creditappdemo:latest
+    ports:
+      - "5173:80"
+    restart: unless-stopped

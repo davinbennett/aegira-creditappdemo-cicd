@@ -1,0 +1,69 @@
+name: aegira-creditappdemo
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: aegira_loan
+      POSTGRES_USER: aegira
+      POSTGRES_PASSWORD: aegira_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegira -d aegira_loan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:5.0.3-alpine
+    container_name: aegira-loan-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    
+  aegira-loan-service:
+    build:
+      context: ./aegira-loan-service
+    image: aegira-loan-service:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aegira_loan
+      SPRING_DATASOURCE_USERNAME: aegira
+      SPRING_DATASOURCE_PASSWORD: aegira_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: change-this-secret
+      JWT_EXPIRATION: 3600000
+      LOAN_DATA_SOURCE_MODE: DATABASE
+      IDEMPOTENCY_ENABLED: true
+      IDEMPOTENCY_TTL_SECONDS: 86400
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  creditappdemo:
+    build:
+      context: ./creditappdemo
+      args:
+        VITE_SCORING_MODE: mock
+        VITE_BACKEND_BASE_URL: http://localhost:8080
+        VITE_SCORING_PATH: /api/v1/credit-scoring/simulate
+        VITE_SCORING_SCHEMA: aegira
+        VITE_SCORING_DEFAULT_TENURE: 12
+    image: creditappdemo:latest
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
