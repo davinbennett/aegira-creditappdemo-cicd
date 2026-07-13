@@ -1,6 +1,6 @@
-name: Build and Deploy                     # Nama workflow.
+name: Build, Push and Deploy
 
-on:                                        # Trigger workflow.
+on:
   push:
     branches:
       - main
@@ -8,40 +8,63 @@ on:                                        # Trigger workflow.
   workflow_dispatch:
 
 concurrency:
-  group: production-deploy                 # Hanya satu deployment berjalan dalam satu waktu.
+  group: production-deploy
   cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Deploy with Self-Hosted Docker Runner
     runs-on: [self-hosted, docker-local]
 
     permissions:
       contents: read
-      packages: read                       # Dibutuhkan untuk pull image dari GHCR.
+      packages: write
 
     steps:
+      # Checkout source code
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Verify Docker
-        run: |
-          docker --version
-          docker compose version
-
-      - name: Login to GitHub Container Registry
+      # Login ke GitHub Container Registry
+      - name: Login to GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull latest images
+      # BACKEND
+      - name: Build Backend Image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/aegira-loan-service:latest \
+            -t ghcr.io/${{ github.repository_owner }}/aegira-loan-service:${{ github.sha }} \
+            ./aegira-loan-service
+
+      - name: Push Backend Image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/aegira-loan-service:latest
+          docker push ghcr.io/${{ github.repository_owner }}/aegira-loan-service:${{ github.sha }}
+
+      # FRONTEND
+      - name: Build Frontend Image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/creditappdemo:latest \
+            -t ghcr.io/${{ github.repository_owner }}/creditappdemo:${{ github.sha }} \
+            ./creditappdemo
+
+      - name: Push Frontend Image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/creditappdemo:latest
+          docker push ghcr.io/${{ github.repository_owner }}/creditappdemo:${{ github.sha }}
+
+      # DEPLOY
+      - name: Pull Latest Images
         run: docker compose pull
 
-      - name: Deploy containers
+      - name: Deploy Containers
         run: docker compose up -d --remove-orphans
 
-      - name: Show running containers
+      - name: Show Running Containers
         run: docker compose ps
 
-      - name: Show logs if deployment fails
+      - name: Show Logs if Failed
         if: failure()
         run: docker compose logs
