@@ -28,9 +28,7 @@ services:                                    # Daftar service yang akan dijalank
       - redis_data:/data                     # Menyimpan data Redis secara persisten.
 
   aegira-loan-service:                       # Service backend Spring Boot.
-    build:
-      context: ./aegira-loan-service         # Lokasi Dockerfile backend.
-    image: aegira-loan-service:local         # Nama image hasil build.
+    image: ghcr.io/davinbennett/aegira-loan-service:latest         # Nama image hasil build.
     depends_on:                              # Menentukan dependency service.
       postgres:
         condition: service_healthy           # Menunggu PostgreSQL sehat sebelum backend dijalankan.
@@ -49,21 +47,11 @@ services:                                    # Daftar service yang akan dijalank
       IDEMPOTENCY_TTL_SECONDS: 86400         # Durasi penyimpanan idempotency (detik).
     ports:
       - "8080:8080"                          # Membuka port backend ke host.
-    restart: unless-stopped                  # Restart otomatis kecuali dihentikan manual.
 
   creditappdemo:                             # Service frontend.
-    build:
-      context: ./creditappdemo               # Lokasi Dockerfile frontend.
-      args:                                  # Build argument untuk Vite.
-        VITE_SCORING_MODE: mock              # Mode scoring (mock/backend).
-        VITE_BACKEND_BASE_URL: http://localhost:8080  # URL backend yang digunakan frontend.
-        VITE_SCORING_PATH: /api/v1/credit-scoring/simulate  # Endpoint scoring.
-        VITE_SCORING_SCHEMA: aegira          # Nama schema scoring.
-        VITE_SCORING_DEFAULT_TENURE: 12      # Tenor default.
-    image: creditappdemo:latest              # Nama image frontend.
     ports:
-      - "5173:80"                            # Port host 5173 diarahkan ke port 80 Nginx.
-    restart: unless-stopped                  # Restart otomatis kecuali dihentikan manual.
+      - "5173:80"
+    image: ghcr.io/davinbennett/creditappdemo:latest             # Nama image frontend.
 
 volumes:                                     # Daftar Docker Volume.
   postgres_data:                             # Volume untuk menyimpan data PostgreSQL.

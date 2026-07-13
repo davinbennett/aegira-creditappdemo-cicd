@@ -1,40 +1,47 @@
-name: Build and Deploy                     # Nama workflow yang tampil di GitHub Actions.
+name: Build and Deploy                     # Nama workflow.
 
-on:                                        # Menentukan kapan workflow dijalankan.
-  push:                                    # Trigger saat ada push ke repository.
+on:                                        # Trigger workflow.
+  push:
     branches:
-      - main                               # Berjalan saat push ke branch main.
-      - master                             # Berjalan saat push ke branch master.
-  workflow_dispatch:                       # Memungkinkan workflow dijalankan secara manual dari GitHub.
+      - main
+      - master
+  workflow_dispatch:
 
-concurrency:                               # Mengatur agar hanya satu deployment berjalan dalam satu waktu.
-  group: production-deploy                 # Nama grup concurrency.
-  cancel-in-progress: true                 # Membatalkan deployment sebelumnya jika ada deployment baru.
+concurrency:
+  group: production-deploy                 # Hanya satu deployment berjalan dalam satu waktu.
+  cancel-in-progress: true
 
-jobs:                                      # Daftar job yang akan dijalankan.
+jobs:
   deploy:
-    name: Deploy with Self-Hosted Docker Runner   # Nama job yang tampil di GitHub Actions.
-    runs-on: [self-hosted, docker-local]          # Menjalankan job pada self-hosted runner dengan label docker-local.
+    name: Deploy with Self-Hosted Docker Runner
+    runs-on: [self-hosted, docker-local]
 
     permissions:
-      contents: read                       # Memberikan izin baca terhadap isi repository.
+      contents: read
+      packages: read                       # Dibutuhkan untuk pull image dari GHCR.
 
-    steps:                                # Urutan langkah yang dijalankan.
-
-      - name: Checkout source             # Mengambil source code dari repository.
+    steps:
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Verify Docker               # Memastikan Docker dan Docker Compose tersedia pada runner.
+      - name: Verify Docker
         run: |
-          docker --version                # Menampilkan versi Docker.
-          docker compose version          # Menampilkan versi Docker Compose.
+          docker --version
+          docker compose version
 
-      - name: Build and Deploy            # Build image dan menjalankan seluruh service.
-        run: docker compose up -d --build --remove-orphans
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Show running containers     # Menampilkan daftar container yang sedang berjalan.
+      - name: Pull latest images
+        run: docker compose pull
+
+      - name: Deploy containers
+        run: docker compose up -d --remove-orphans
+
+      - name: Show running containers
         run: docker compose ps
 
-      - name: Show logs if deployment fails   # Menampilkan log jika proses deployment gagal.
-        if: failure()                         # Langkah ini hanya dijalankan ketika job gagal.
-        run: docker compose logs              # Menampilkan log seluruh service.
+      - name: Show logs if deployment fails
+        if: failure()
+        run: docker compose logs
